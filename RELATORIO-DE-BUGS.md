@@ -25,8 +25,7 @@
 - **Resultado esperado:** O campo de quilometragem deveria restringir a entrada apenas a números inteiros válidos e positivos, aplicando um limite máximo razoável (ex: 999.999 km) com validação em tempo de execução.
 - **Resultado obtido:** O sistema aceita o valor inválido/notação científica sem restrições, comprometendo a consistência lógica do histórico de manutenção do veículo.
 - **Evidência:**
-  ![Evidência do Bug de Quilometragem](./imagens-de-teste/CAMPO%20QUILOMETRAGEM%20MAIOR%20QUE%20PERMITIDO.png)
-
+![Evidência do Bug de Quilometragem](imagens-de-teste/bugQuilometragem.jpeg)
 
 ### [BUG-03] Sistema permite o registo de revisões com data no futuro
 
@@ -125,3 +124,20 @@
     ![Estado Inicial Favoritos](./imagens-de-teste/favoritar1.png)
   - **Estado Atualizado (Menos itens na lista, mas contador continua em 8):**
     ![Contador Inconsistente](./imagens-de-teste/favoritar2.png)
+
+
+### [BUG-09] Contador de edições de rascunho exibe identificador/contagem incorreta durante edições sucessivas
+
+* **Severidade:** Média
+* **Onde:** Cabeçalho do formulário de revisão ("Editando revisão #X")
+* **Passos para reproduzir:**
+  1. Acessar a página de detalhes de um veículo no catálogo (ex: Chevrolet Onix · 2022)[cite: 11].
+  2. Iniciar uma nova revisão, preencher os dados e clicar em "Salvar rascunho".
+  3. Clicar em "Editar rascunho" para reabrir a mesma revisão salva.
+  4. Realizar alterações e clicar em "Salvar rascunho" novamente sucessivas vezes.
+  5. Observar a tag/identificador exibida no canto superior direito do formulário ("Editando revisão #X")[cite: 11].
+* **Resultado esperado:** O sistema deve manter a contagem e identificação correta da revisão que está sendo editada (ex: se for a primeira revisão rascunhada do veículo, manter o identificador fixo `#1` ou decrementar/incrementar conforme a lógica de versão esperada).
+* **Resultado obtido:** O sistema incrementa incorretamente o número da edição a cada salvamento do mesmo rascunho (exibindo "Editando revisão #2", #3, etc.)[cite: 11], tratando salvamentos sucessivos do mesmo rascunho como se fossem revisões novas ou contagens de tentativas independentes.
+* **Evidência:**
+* **Evidência:**
+  ![Evidência do Contador de Edições de Rascunho](imagens-de-teste/editandoRevisao.png)
