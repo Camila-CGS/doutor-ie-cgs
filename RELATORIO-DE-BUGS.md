@@ -79,7 +79,7 @@
     ![Evidência 3](./imagens-de-teste/Captura%20de%20tela%202026-10-26%20195047.png)
 
 
-### [BUG-06] Sistema permite criar e salvar rascunhos de revisões completamente vazios (Registo Fantasma)
+### [ESPECIFICAÇÃO-06] Sistema permite criar e salvar rascunhos de revisões completamente vazios (Registo Fantasma)
 
 - **Severidade:** Baixa
 - **Onde:** Módulo de Revisão do Veículo / Botão "Salvar rascunho"
@@ -87,7 +87,7 @@
   1. Aceder a um veículo e iniciar uma nova revisão.
   2. Deixar absolutamente todos os campos do formulário em branco.
   3. Clicar no botão **"Salvar rascunho"**.
-- **Resultado esperado:** O sistema ou a especificação de requisitos deveria exigir pelo menos o preenchimento de campos obrigatórios mínimos antes de permitir a gravação de um rascunho.
+- **Resultado esperado:** O sistema ou a especificação de requisitos deveria exigir pelo menos o preenchimento de campos obrigatórios mínimos antes de permitir a gravação de um rascunho. Apesar da RN06 permita esse comportamento é importante reavaliar a lacuna na regra. 
 - **Resultado obtido:** O sistema aceita o envio do formulário em branco e cria um registo no histórico exibindo "Não informado" e "Data não informada", poluindo a interface com dados inválidos.
 - **Evidência:**
   ![Evidência do Bug de Rascunho Vazio](./imagens-de-teste/rascunhoSemDados.png)
@@ -141,3 +141,52 @@
 * **Evidência:**
 * **Evidência:**
   ![Evidência do Contador de Edições de Rascunho](imagens-de-teste/editandoRevisao.png)
+
+  
+### [BUG-10] API autentica com senha errada
+ 
+- **Severidade:** Crítica
+- **Onde:** `POST /api/login`
+- **Passos para reproduzir:**
+  1. Enviar `{ "email": "qa@doutor-ie.com", "password": "errada" }`.
+- **Resultado esperado:** `401 Unauthorized` sem token.
+- **Resultado obtido:** `200 OK`.
+- **Evidência:** teste automatizado `[BUG-09]` em `tests/api-revisoes.spec.js` (recebeu 200, esperado 401).
+ 
+### [BUG-11] Veículo inexistente retorna 200 em vez de 404
+ 
+- **Severidade:** Média
+- **Onde:** `GET /api/vehicles/:id`
+- **Passos para reproduzir:**
+  1. Chamar `GET /api/vehicles/999999`.
+- **Resultado esperado:** `404 Not Found`.
+- **Resultado obtido:** `200 OK`.
+- **Evidência:** teste automatizado `[BUG-10]` (recebeu 200, esperado 404).
+ 
+### [BUG-12] API aceita quilometragem negativa e acima de 999999 (RN01)
+ 
+- **Severidade:** Alta
+- **Onde:** `POST /api/vehicles/:id/revisions`
+- **Passos para reproduzir:**
+  1. Enviar uma revisão concluída com `mileage: -1`.
+  2. Repetir com `mileage: 1000000`.
+- **Resultado esperado:** `400` com mensagem de validação (RN01: inteiro entre 0 e 999999).
+- **Resultado obtido:** `201 Created` nos dois casos. (Os valores 0, 999999, 1.5, "abc" e null foram tratados corretamente.)
+- **Evidência:** testes automatizados `[BUG-11]`.
+ 
+### [BUG-13] API aceita troca de óleo sem tipo ou sem quantidade (RN04)
+ 
+- **Severidade:** Alta
+- **Onde:** `POST /api/vehicles/:id/revisions`
+- **Passos para reproduzir:**
+  1. Enviar revisão concluída com `oilChanged: true` e `oilType: ""` (quantidade 4).
+  2. Repetir com `oilChanged: true`, `oilType: "5W-30"` e `oilQuantity: null`.
+- **Resultado esperado:** `400`, pois tipo e quantidade são obrigatórios quando há troca de óleo (RN04).
+- **Resultado obtido:** `201 Created` nos dois casos. (Quantidades 0, -1, 10.01 e 11 foram rejeitadas corretamente.)
+- **Evidência:** testes automatizados `[BUG-12]`.
+ 
+## Confirmação via automação
+ 
+Os bugs BUG-01 (RN05), BUG-02 (RN01), BUG-03 (RN02), BUG-04 e BUG-05 (RN06) também foram **reproduzidos diretamente na API** pelos testes marcados com `[BUG-XX]` (que usam `test.fail()` e documentam o comportamento correto esperado). Ou seja, o problema está no back-end, não apenas na tela.
+ 
+---

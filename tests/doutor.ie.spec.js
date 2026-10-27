@@ -1,106 +1,165 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Doutor-IE - Suíte Completa de Testes QA (Catálogo, Favoritos, Ordenação e Revisões)', () => {
-  
-  test.beforeEach(async ({ page }) => {
-    // Acessa a aplicação e realiza o login padrão de QA
-    await page.goto('http://localhost:3000/');
-    
-    await page.getByTestId('login-email').fill('qa@doutor-ie.com');
-    await page.getByTestId('login-password').fill('Teste123');
-    await page.getByTestId('login-submit').click();
+const EMAIL = 'qa@doutor-ie.com';
+const SENHA = 'Teste123';
+
+// Data local de hoje (YYYY-MM-DD) com deslocamento opcional em dias.
+const dia = (offset = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toLocaleDateString('sv-SE');
+};
+
+async function login(page, email = EMAIL, senha = SENHA) {
+  await page.goto('/');
+  await page.getByTestId('login-email').fill(email);
+  await page.getByTestId('login-password').fill(senha);
+  await page.getByTestId('login-submit').click();
+}
+
+async function logado(page) {
+  await login(page);
+  await expect(page.getByTestId('nav-catalog')).toBeVisible();
+}
+
+async function abrirNovaRevisao(page) {
+  await page.getByTestId('nav-catalog').click();
+  await page.getByTestId('open-vehicle').first().click();
+  await page.getByTestId('start-review').click();
+  await expect(page.getByTestId('revision-mileage')).toBeVisible();
+}
+
+// ---------------------------------------------------------------------------
+test.describe('UI - Login', () => {
+  test('login válido leva ao catálogo', async ({ page }) => {
+    await logado(page);
+    await expect(page.getByTestId('open-vehicle').first()).toBeVisible();
   });
 
-  test('Cenário 1: Gerenciamento de Favoritos (Adicionar e Remover)', async ({ page }) => {
-    // Adiciona itens aos favoritos no catálogo
+  test('login com senha inválida permanece na tela de login', async ({ page }) => {
+    await login(page, EMAIL, 'senha-errada');
+    await expect(page.getByTestId('login-submit')).toBeVisible();
+    await expect(page.getByTestId('nav-catalog')).toBeHidden();
+  });
+
+  test('login com campos vazios não autentica', async ({ page }) => {
+    await page.goto('/');
+    await page.getByTestId('login-submit').click();
+    await expect(page.getByTestId('nav-catalog')).toBeHidden();
+  });
+});
+
+// ---------------------------------------------------------------------------
+test.describe('UI - Catálogo e favoritos', () => {
+  test('fluxo feliz: login -> abrir manual -> favoritar', async ({ page }) => {
+    await logado(page);
+
+    // abre um manual e confere que a tela de detalhes carregou
+    await page.getByTestId('open-vehicle').first().click();
+    await expect(page.getByTestId('start-review')).toBeVisible();
+
+    // volta ao catálogo, favorita e confere na tela de favoritos
+    await page.getByTestId('nav-catalog').click();
+    await page.getByTestId('favorite-btn').first().click();
+    await page.getByTestId('nav-favorites').click();
+    await expect(page.getByRole('button', { name: '✕' }).first()).toBeVisible();
+  });
+
+  test('busca sem resultado não exibe veículos', async ({ page }) => {
+    await logado(page);
+    // AJUSTE se necessário: troque pelo data-testid real do campo de busca.
+    const busca = page.getByRole('searchbox').or(page.getByPlaceholder(/busc|pesquis|search/i)).first();
+    await busca.fill('zzzz-inexistente-9999');
+    await expect(page.getByTestId('open-vehicle')).toHaveCount(0);
+  });
+
+  test('[BUG-07] contador de favoritos diminui ao remover', async ({ page }) => {
+    test.fail(); // Bug conhecido: contador do menu não atualiza após remoção.
+    await logado(page);
     await page.getByTestId('favorite-btn').first().click();
     await page.getByTestId('favorite-btn').nth(1).click();
-
-    // Acessa a tela de favoritos e valida a remoção de um item
     await page.getByTestId('nav-favorites').click();
+
+    const antes = (await page.getByTestId('nav-favorites').innerText()).match(/\d+/)?.[0];
     await page.getByRole('button', { name: '✕' }).first().click();
+    const depois = (await page.getByTestId('nav-favorites').innerText()).match(/\d+/)?.[0];
+    expect(Number(depois)).toBe(Number(antes) - 1);
   });
 
-  test('Cenário 2: Fluxo Completo de Revisão de Veículo (Rascunho, Edição e Conclusão)', async ({ page }) => {
-    // Navega para o catálogo e abre o primeiro veículo
-    await page.getByTestId('nav-catalog').click();
-    await page.getByTestId('open-vehicle').first().click();
+  test('[BUG-06] ordenação por ano reordena a lista', async ({ page }) => {
+    test.fail(); // Bug conhecido: a lista não muda ao alternar Ano crescente/decrescente.
+    await logado(page);
 
-    // Seleciona o componente e inicia a revisão
-    await page.getByRole('cell', { name: 'Faróis baixos' }).click();
-    await page.getByTestId('start-review').click();
+    const anos = () =>
+      page.getByTestId('open-vehicle').evaluateAll((els) =>
+        els
+          .map((e) => ((e.closest('article, li, [class*=card]') || e.parentElement).innerText.match(/\b(19|20)\d{2}\b/) || [])[0])
+          .filter(Boolean)
+          .map(Number)
+      );
 
-    // Preenche dados de quilometragem e óleo
-    await page.getByTestId('revision-mileage').fill('2');
-    await page.getByTestId('revision-oil-changed').check();
-    await page.getByTestId('revision-oil-type').fill('normal');
-    await page.getByTestId('revision-oil-quantity').fill('10');
-    await page.getByTestId('revision-oil-fields').click();
+    const botaoAno = page.getByRole('button', { name: /Ano/ });
+    await expect(botaoAno).toBeVisible();
 
-    // Adiciona observações e salva como rascunho
-    await page.getByTestId('revision-notes').fill('obs-cgs');
-    await page.getByTestId('save-draft').click();
+    await botaoAno.click();
+    const primeira = await anos();
+    await botaoAno.click();
+    const segunda = await anos();
 
-    // Edita a revisão para alterar o tipo para corretiva
-    await page.getByTestId('edit-review').click();
-    await page.getByTestId('revision-type').selectOption('corretiva');
+    expect(primeira.length).toBeGreaterThan(1);
+    expect(JSON.stringify(primeira)).not.toBe(JSON.stringify(segunda));
+  });
+});
 
-    // Preenche a data corretamente e conclui a revisão
-    await page.getByTestId('revision-date').fill('2026-10-22');
+// ---------------------------------------------------------------------------
+test.describe('UI - Revisões', () => {
+  test('conclui revisão válida e exibe no histórico', async ({ page }) => {
+    await logado(page);
+    await abrirNovaRevisao(page);
+
+    await page.getByTestId('revision-mileage').fill('12345');
+    await page.getByTestId('revision-date').fill(dia(-1));
+    await page.getByTestId('revision-type').selectOption('preventiva');
+    await page.getByTestId('revision-notes').fill('Revisão de teste automatizado');
     await page.getByTestId('complete-review').click();
 
-    // Valida o status da revisão concluída na tela
-    const statusBadge = page.getByTestId('revision-status');
-    await expect(statusBadge).toBeVisible();
-    await expect(page.getByText('Corretiva 22/10/2026 · 2 km Concluída')).toBeVisible();
+    await expect(page.getByTestId('revision-status').first()).toContainText(/conclu/i);
   });
 
-  test('Cenário 3: Validação de Modos de Revisão e Retorno de Navegação', async ({ page }) => {
-    // Acessa o catálogo, abre o veículo e inicia a revisão
-    await page.getByTestId('nav-catalog').click();
-    await page.getByTestId('open-vehicle').first().click();
-    await page.getByRole('cell', { name: 'Faróis baixos' }).click();
-    await page.getByTestId('start-review').click();
+  test('salva rascunho e permite editar até concluir', async ({ page }) => {
+    await logado(page);
+    await abrirNovaRevisao(page);
 
-    // Testa a troca entre tipos de revisão (Inspeção / Preventiva)
-    await page.getByTestId('revision-type').selectOption('inspecao');
+    await page.getByTestId('revision-mileage').fill('500');
+    await page.getByTestId('save-draft').click();
+    await expect(page.getByTestId('revision-status').first()).toContainText(/rascunho/i);
+
+    await page.getByTestId('edit-review').first().click();
+    await page.getByTestId('revision-date').fill(dia(-1));
+    await page.getByTestId('revision-type').selectOption('corretiva');
+    await page.getByTestId('complete-review').click();
+    await expect(page.getByTestId('revision-status').first()).toContainText(/conclu/i);
+  });
+
+  test('negativo: concluir sem campos obrigatórios não conclui', async ({ page }) => {
+    await logado(page);
+    await abrirNovaRevisao(page);
+    await page.getByTestId('complete-review').click();
+    await expect(page.getByTestId('revision-status')).toHaveCount(0);
+  });
+
+  test('[BUG-03] não deve concluir revisão com data futura', async ({ page }) => {
+    test.fail(); // Bug conhecido: data futura é aceita.
+    await logado(page);
+    await abrirNovaRevisao(page);
+
+    await page.getByTestId('revision-mileage').fill('1000');
+    await page.getByTestId('revision-date').fill(dia(30));
     await page.getByTestId('revision-type').selectOption('preventiva');
-
-    // Testa os botões de navegação, modo e retorno do formulário
-    await page.getByTestId('revision-form').click();
-    await page.getByTestId('revision-mode').click();
-    await page.getByTestId('revision-back').click();
+      const resposta = page.waitForResponse(
+    (r) => r.url().includes('/revisions') && r.request().method() === 'POST'
+  );
+  await page.getByTestId('complete-review').click();
+  expect((await resposta).status()).toBeGreaterThanOrEqual(400); // data futura deveria ser rejeitada
   });
-
-  test('Cenário 4: Teste Negativo - Tentativa de Ações sem Preenchimento Obrigatório', async ({ page }) => {
-    // Navega para o catálogo e abre o veículo
-    await page.getByTestId('nav-catalog').click();
-    await page.getByTestId('open-vehicle').first().click();
-    await page.getByRole('cell', { name: 'Faróis baixos' }).click();
-    await page.getByTestId('start-review').click();
-
-    // Tenta salvar rascunho ou concluir sem preencher os campos obrigatórios (quilometragem/data)
-    // Valida que o sistema lida com o estado vazio de forma controlada
-    const saveDraftBtn = page.getByTestId('save-draft');
-    await expect(saveDraftBtn).toBeVisible();
-    await saveDraftBtn.click();
-  });
-
-  test('Cenário 5: Validação da Ordenação de Carros / Veículos no Catálogo', async ({ page }) => {
-    // Navega para o catálogo de veículos
-    await page.getByTestId('nav-catalog').click();
-
-    // Valida a presença e interação com o seletor de ordenação de carros
-    const sortSelect = page.getByTestId('sort-vehicles');
-    await expect(sortSelect).toBeVisible();
-
-    // Altera a ordenação por Nome/Modelo e verifica se a lista atualiza
-    await sortSelect.selectOption('nome');
-    await expect(page.getByTestId('open-vehicle').first()).toBeVisible();
-
-    // Altera a ordenação por Ano e verifica a resposta da listagem
-    await sortSelect.selectOption('ano');
-    await expect(page.getByTestId('open-vehicle').first()).toBeVisible();
-  });
-
 });
