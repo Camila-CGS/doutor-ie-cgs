@@ -40,7 +40,7 @@ npx playwright test --headed                     # com navegador visível
 
 Testes com prefixo `[BUG-XX]` descrevem o **comportamento correto esperado** e usam `test.fail()`.
 Isso significa que o teste é dado como "passou" enquanto o bug existir. Quando o bug for corrigido, o teste passa a
-reportar falha inesperada e o `test.fail()` deve ser removido.
+reportar falha inesperada e o `test.fail()` deve ser removido. O número `XX` é o mesmo do `RELATORIO-DE-BUGS.md`.
 
 | Teste | Bug | Regra |
 |---|---|---|
@@ -49,16 +49,21 @@ reportar falha inesperada e o `test.fail()` deve ser removido.
 | `[BUG-03]` data futura | Data futura aceita (API e UI) | RN02 |
 | `[BUG-04]` editar concluída | Revisão concluída pode ser editada | RN06 |
 | `[BUG-05]` concluída para rascunho | Revisão concluída volta a rascunho | RN06 |
-| `[BUG-06]` ordenação por ano | Lista não reordena | UI |
-| `[BUG-07]` contador de favoritos | Contador não atualiza ao remover | UI |
-| `[BUG-09]` login inválido | API retorna 200 com senha errada | API |
-| `[BUG-10]` veículo inexistente | API retorna 200 em vez de 404 | API |
-| `[BUG-11]` km -1 e 1000000 | API aceita quilometragem fora do intervalo | RN01 |
-| `[BUG-12]` troca de óleo incompleta | API aceita óleo sem tipo ou sem quantidade | RN04 |
+| `[BUG-07]` ordenação por ano | Lista não reordena | UI |
+| `[BUG-08]` contador de favoritos | Contador não atualiza ao remover | UI |
+| `[BUG-10]` login inválido | API retorna 200 com senha errada | API |
+| `[BUG-11]` veículo inexistente | API retorna 200 em vez de 404 | API |
+| `[BUG-12]` km -1 e 1000000 | API aceita quilometragem fora do intervalo | RN01 |
+| `[BUG-13]` troca de óleo incompleta | API aceita óleo sem tipo ou sem quantidade | RN04 |
+
+Itens do relatório **sem teste automatizado** (verificados manualmente):
+
+- **ESPECIFICAÇÃO-06**: rascunho totalmente vazio é aceito. A RN06 permite rascunhos incompletos, então foi registrado como lacuna de especificação, e não como bug.
+- **BUG-09**: o número em "Editando revisão #X" muda a cada salvamento do rascunho.
 
 ## Decisões
 
 - Execução sequencial (`workers: 1`) por causa do estado em memória do app.
 - Cada teste de API usa um `X-Session-Id` único para isolar os dados.
 - Datas calculadas dinamicamente, sem valores fixos que quebrariam com o tempo.
-- Rascunho vazio foi registrado como observação (OBS-01) e não como bug, pois a RN06 permite rascunhos incompletos.
+- Rascunho vazio foi registrado como lacuna de especificação (ESPECIFICAÇÃO-06) e não como bug, pois a RN06 permite rascunhos incompletos.
