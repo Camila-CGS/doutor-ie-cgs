@@ -40,21 +40,24 @@ npx playwright test --headed                     # com navegador visível
 
 Testes com prefixo `[BUG-XX]` descrevem o **comportamento correto esperado** e usam `test.fail()`.
 Isso significa que o teste é dado como "passou" enquanto o bug existir. Quando o bug for corrigido, o teste passa a
-reportar falha inesperada e o `test.fail()` deve ser removido. O número `XX` é o mesmo do `RELATORIO-DE-BUGS.md`.
+reportar falha inesperada e o `test.fail()` deve ser removido.
 
-| Teste | Bug | Regra |
-|---|---|---|
-| `[BUG-01]` 301 caracteres | Observações acima de 300 caracteres são aceitas | RN05 |
-| `[BUG-02]` km 1e126 | Quilometragem absurda aceita | RN01 |
-| `[BUG-03]` data futura | Data futura aceita (API e UI) | RN02 |
-| `[BUG-04]` editar concluída | Revisão concluída pode ser editada | RN06 |
-| `[BUG-05]` concluída para rascunho | Revisão concluída volta a rascunho | RN06 |
-| `[BUG-07]` ordenação por ano | Lista não reordena | UI |
-| `[BUG-08]` contador de favoritos | Contador não atualiza ao remover | UI |
-| `[BUG-10]` login inválido | API retorna 200 com senha errada | API |
-| `[BUG-11]` veículo inexistente | API retorna 200 em vez de 404 | API |
-| `[BUG-12]` km -1 e 1000000 | API aceita quilometragem fora do intervalo | RN01 |
-| `[BUG-13]` troca de óleo incompleta | API aceita óleo sem tipo ou sem quantidade | RN04 |
+> A tag `[BUG-XX]` é a identificação usada no código dos testes. A coluna **Bug no relatório** indica o número
+> correspondente em `RELATORIO-DE-BUGS.md`.
+
+| Tag no teste | Bug no relatório | Descrição | Regra |
+|---|---|---|---|
+| `[BUG-01]` 301 caracteres | BUG-01 | Observações acima de 300 caracteres são aceitas | RN05 |
+| `[BUG-02]` km 1e126 | BUG-02 | Quilometragem absurda aceita | RN01 |
+| `[BUG-03]` data futura | BUG-03 | Data futura aceita (API e UI) | RN02 |
+| `[BUG-04]` editar concluída | BUG-04 | Revisão concluída pode ser editada | RN06 |
+| `[BUG-05]` concluída para rascunho | BUG-05 | Revisão concluída volta a rascunho | RN06 |
+| `[BUG-06]` ordenação por ano | BUG-07 | Lista não reordena | UI |
+| `[BUG-07]` contador de favoritos | BUG-08 | Contador não atualiza ao remover | UI |
+| `[BUG-09]` login inválido | BUG-10 | API retorna 200 com senha errada | API |
+| `[BUG-10]` veículo inexistente | BUG-11 | API retorna 200 em vez de 404 | API |
+| `[BUG-11]` km -1 e 1000000 | BUG-12 | API aceita quilometragem fora do intervalo | RN01 |
+| `[BUG-12]` troca de óleo incompleta | BUG-13 | API aceita óleo sem tipo ou sem quantidade | RN04 |
 
 Itens do relatório **sem teste automatizado** (verificados manualmente):
 
